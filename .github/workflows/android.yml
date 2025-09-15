@@ -29,20 +29,24 @@ jobs:
             ${{ runner.os }}-gradle-
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v4
+      - name: Prepare signing keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEYSTORE }}" > keystore.jks.b64
+          base64 -d -i keystore.jks.b64 > /tmp/keystore.jks
       - name: Build with Gradle
         run: |
-          ./gradlew :app:assembleDebug
+          ./gradlew :app:assembleRelease -Pandroid.injected.signing.store.file="/tmp/keystore.jks" -Pandroid.injected.signing.store.password="${{ secrets.STORE_PASSWORD }}" -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Etar_apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/release/app-release.apk
       - name: Upload APK to release
         if: github.event_name == 'release'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: app/build/outputs/apk/debug/app-debug.apk
-          asset_name: etar-calendar-debug.apk
+          file: app/build/outputs/apk/release/app-release.apk
+          asset_name: etar-calendar-release.apk
           tag: ${{ github.ref }}
           overwrite: true
